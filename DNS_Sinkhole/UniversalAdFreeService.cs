@@ -9,31 +9,66 @@ namespace DNS_Sinkhole
         private IBrowserContext? _context;
         private IPage? _page;
 
-        public async Task InitializeAsync(bool showUI = true)
+        public async Task InitializeAsync(bool showUI = true, bool burnerMode = false)
         {
             _playwright = await Playwright.CreateAsync();
 
-            _browser = await _playwright.Chromium.LaunchAsync(new BrowserTypeLaunchOptions
+            if (burnerMode)
             {
-                Headless = !showUI,
-                Channel = "chrome"
-            });
+                var launchOptions = new BrowserTypeLaunchOptions
+                {
+                    Headless = !showUI,
+                    Channel = "chrome",
+                    Args = new[]
+                    {
+                        "--disable-application-cache",
+                        "--disable-offline-load-stale-cache",
+                        "--disk-cache-size=1",
+                        "--media-cache-size=1"
+                    }
+                };
 
-            _context = await _browser.NewContextAsync();
+                _browser = await _playwright.Chromium.LaunchAsync(launchOptions);
 
-            await _context.AddInitScriptAsync(@"
+                var contextOptions = new BrowserNewContextOptions();
+                contextOptions.ServiceWorkers = ServiceWorkerPolicy.Block;
+                _context = await _browser.NewContextAsync(contextOptions);
+                _page = await _context.NewPageAsync();
+            }
+            else
+            {
+                string userDataDir = Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.LocalApplicationData), "SocketScriptBrowser");
+
+                var persistentOptions = new BrowserTypeLaunchPersistentContextOptions
+                {
+                    Headless = !showUI,
+                    Channel = "chrome"
+                };
+
+                _context = await _playwright.Chromium.LaunchPersistentContextAsync(userDataDir, persistentOptions);
+                _page = await _context.NewPageAsync();
+                var allPages = new List<IPage>(_context.Pages);
+
+                foreach (var p in allPages)
+                {
+                    if (p != _page && !p.IsClosed)
+                    {
+                        await p.CloseAsync();
+                    }
+                }
+
+                await _context.AddInitScriptAsync(@"
                 window.open = function() { return null; };
             ");
 
-            await _context.AddInitScriptAsync(@"
+                await _context.AddInitScriptAsync(@"
                 Object.defineProperty(navigator, 'webdriver', {
                     get: () => undefined
                 });
             ");
 
-            await _context.AddInitScriptAsync(@"
+                await _context.AddInitScriptAsync(@"
                 setInterval(() => {
-                    // Μέρος Α: Πατάμε τα κουμπιά 'Skip' αν εμφανιστούν
                     const skipKeywords = ['skip ad', 'παράλειψη', 'close ad', 'κλείσιμο'];
                     const clickableElements = document.querySelectorAll('button, div, span, a');
                     
@@ -47,23 +82,17 @@ namespace DNS_Sinkhole
                         }
                     }
 
-                    // Μέρος Β: Fast-Forward ΜΟΝΟ αν είναι όντως διαφήμιση
                     const videos = document.querySelectorAll('video');
-                    
-                    // Το YouTube βάζει την κλάση '.ad-showing' ΜΟΝΟ όταν παίζει διαφήμιση
                     const isAdPlaying = document.querySelector('.ad-showing') !== null;
 
                     videos.forEach(video => {
                         if (isAdPlaying) {
-                            // Είναι διαφήμιση: Βάλτο στο x16 και πήγαινε στο τέλος
                             video.playbackRate = 16.0;
                             video.muted = true;
                             if (!isNaN(video.duration) && video.duration > 0) {
                                 video.currentTime = video.duration;
                             }
                         } else {
-                            // ΕΙΝΑΙ ΚΑΝΟΝΙΚΟ ΒΙΝΤΕΟ: 
-                            // Αν είχε ξεμείνει στο x16 από πριν, επανέφερέ το στο κανονικό (x1)!
                             if (video.playbackRate === 16.0) {
                                 video.playbackRate = 1.0;
                                 video.muted = false;
@@ -73,15 +102,33 @@ namespace DNS_Sinkhole
                 }, 100);
             ");
 
-            _page = await _context.NewPageAsync();
+                await _context.AddInitScriptAsync(@"
+                document.addEventListener('DOMContentLoaded', () => {
+                    const style = document.createElement('style');
+                    style.innerHTML = `
+                        iframe[src*=""ads""],
+                        iframe[id*=""google_ads""],
+                        div[id*=""banner""],
+                        div[class*=""ad-container""],
+                        div[class*=""ad-slot""],
+                        ins.adsbygoogle {
+                            display: none !important;
+                            width: 0px !important;
+                            height: 0px !important;
+                        }
+                    `;
+                    document.head.appendChild(style);
+                });
+            ");
 
-            _context.Page += async (_, newPage) =>
-            {
-                if (newPage != _page)
+                _context.Page += async (_, newPage) =>
                 {
-                    await newPage.CloseAsync();
-                }
-            };
+                    if (newPage != _page)
+                    {
+                        await newPage.CloseAsync();
+                    }
+                };
+            }
         }
 
         public async Task OpenSiteAsync(string url)
@@ -111,6 +158,7 @@ namespace DNS_Sinkhole
 
         public async ValueTask DisposeAsync()
         {
+            if (_context != null) await _context.CloseAsync();
             if (_browser != null) await _browser.CloseAsync();
             _playwright?.Dispose();
         }
