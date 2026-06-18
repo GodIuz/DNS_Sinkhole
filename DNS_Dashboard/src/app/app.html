@@ -1,0 +1,30 @@
+<div class="dashboard-container">
+      <header>
+        <h1>Socket & Script <span>Security Hub</span></h1>
+      </header>
+
+      <div class="main-grid">
+  <div class="stats-panel" style="display: flex; flex-direction: column; gap: 20px;">
+    <div class="stat-card">
+      <h3>TOTAL</h3>
+      <p class="number blue">{{ stats().totalQueries }}</p>
+    </div>
+    <div class="stat-card">
+      <h3>BLOCKED</h3>
+      <p class="number red">{{ stats().blockedQueries }}</p>
+    </div>
+  </div>
+
+  <div class="chart-container">
+  <canvas #dnsChart style="max-height: 200px;"></canvas>
+</div>
+</div>
+
+      <div class="log-container">
+        <h3>Τελευταίες Αναχαιτίσεις</h3>
+        <ul>
+          @for (block of stats().recentBlocks; track $index) { <li>{{ block }}</li> }
+          @empty { <li class="empty">Το δίκτυο είναι καθαρό...</li> }
+        </ul>
+      </div>
+    </div>
