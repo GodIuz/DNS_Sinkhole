@@ -1,0 +1,12 @@
+{
+  "profiles": {
+    "DNS_Sinkhole": {
+      "commandName": "Project",
+      "launchBrowser": true,
+      "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development"
+      },
+      "applicationUrl": "https://localhost:65325;http://localhost:65326"
+    }
+  }
+}

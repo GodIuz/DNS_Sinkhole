@@ -1,9 +1,6 @@
 ﻿using DNS.Client.RequestResolver;
 using DNS.Protocol;
-using System.Net.Http;
 using System.Net.Http.Headers;
-using System.Threading;
-using System.Threading.Tasks;
 
 namespace DNS_Sinkhole
 {
