@@ -66,3 +66,58 @@
     ::-webkit-scrollbar-track { background: #121212; }
     ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
     ::-webkit-scrollbar-thumb:hover { background: #555; }
+
+.history-chart-container {
+  background: #1e1e1e;
+  padding: 25px;
+  border-radius: 12px;
+  border: 1px solid #333;
+  margin-bottom: 40px;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+}
+
+.history-chart-container h3 {
+  margin-top: 0;
+  color: #aaa;
+  font-size: 1.1rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #333;
+  padding-bottom: 10px;
+}
+
+.clients-chart-container h3 {
+  margin-top: 0;
+  color: #aaa;
+  font-size: 1.1rem;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+  margin-bottom: 20px;
+  border-bottom: 1px solid #333;
+  padding-bottom: 10px;
+}
+
+/* Styling για το νέο Live Log Table */
+.live-log-container {
+  background: #1e1e1e; padding: 25px; border-radius: 12px;
+  border: 1px solid #333; box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+  display: flex; flex-direction: column; height: 350px;
+}
+.log-header {
+  display: flex; justify-content: space-between; align-items: center;
+  border-bottom: 1px solid #333; padding-bottom: 15px; margin-bottom: 15px;
+}
+.log-header h3 { margin: 0; color: #aaa; text-transform: uppercase; letter-spacing: 1px; }
+.log-controls input, .log-controls select {
+  background: #121212; color: white; border: 1px solid #444;
+  padding: 8px 12px; border-radius: 6px; margin-left: 10px; font-family: inherit;
+}
+.log-table-wrapper { overflow-y: auto; flex-grow: 1; }
+table { width: 100%; border-collapse: collapse; text-align: left; font-family: 'Courier New', monospace; font-size: 0.95rem; }
+th { position: sticky; top: 0; background: #1e1e1e; color: #888; padding: 10px; border-bottom: 2px solid #333; }
+td { padding: 10px; border-bottom: 1px solid #2a2a2a; }
+.log-row:hover { background: #252525; }
+.status-badge { padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.8rem; }
+.bg-red { background: rgba(255, 71, 87, 0.2); color: #ff4757; }
+.bg-green { background: rgba(46, 213, 115, 0.2); color: #2ed573; }

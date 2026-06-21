@@ -1,4 +1,5 @@
 ﻿using DNS.Server;
+using DNS.Protocol;
 
 namespace DNS_Sinkhole
 {
@@ -8,6 +9,7 @@ namespace DNS_Sinkhole
         {
             Console.Title = "Socket & Script - Security Hub";
             var builder = WebApplication.CreateBuilder(args);
+            builder.WebHost.UseUrls("http://localhost:5000", "https://localhost:5001");
 
             builder.Services.AddCors(options =>
             {
@@ -21,29 +23,138 @@ namespace DNS_Sinkhole
             builder.Services.AddSingleton<BlockListStore>();
             builder.Services.AddSingleton<AutoAdBlockEngine>();
             builder.Services.AddSingleton<DNSListUpdaterService>();
+            builder.Services.AddSingleton<SinkholeResolver>();
             var app = builder.Build();
             app.UseCors("AllowAngular");
+
+            app.MapPost("/dns-query", async (HttpContext context, SinkholeResolver resolver) =>
+            {
+                if (context.Request.ContentType != "application/dns-message")
+                {
+                    context.Response.StatusCode = 415;
+                    return;
+                }
+
+                using var ms = new MemoryStream();
+
+                await context.Request.Body.CopyToAsync(ms);
+                byte[] requestBytes = ms.ToArray();
+
+                try
+                {
+                    var dnsRequest = Request.FromArray(requestBytes);
+                    var dnsResponse = await resolver.Resolve(dnsRequest);
+                    byte[] responseBytes = dnsResponse.ToArray();
+
+                    context.Response.ContentType = "application/dns-message";
+                    context.Response.ContentLength = responseBytes.Length;
+                    await context.Response.Body.WriteAsync(responseBytes);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[!] Σφάλμα στο DoH POST: {ex.Message}");
+                    context.Response.StatusCode = 500;
+                }
+            });
+
+            app.MapGet("/dns-query", async (HttpContext context, SinkholeResolver resolver) =>
+            {
+                var dnsParam = context.Request.Query["dns"].ToString();
+                if (string.IsNullOrEmpty(dnsParam))
+                {
+                    context.Response.StatusCode = 400;
+                    return;
+                }
+
+                try
+                {
+                    string padded = dnsParam.PadRight(dnsParam.Length + (4 - dnsParam.Length % 4) % 4, '=');
+                    byte[] requestBytes = Convert.FromBase64String(padded.Replace('-', '+').Replace('_', '/'));
+
+                    var dnsRequest = Request.FromArray(requestBytes);
+                    var dnsResponse = await resolver.Resolve(dnsRequest);
+                    byte[] responseBytes = dnsResponse.ToArray();
+
+                    context.Response.ContentType = "application/dns-message";
+                    context.Response.ContentLength = responseBytes.Length;
+                    await context.Response.Body.WriteAsync(responseBytes);
+                }
+                catch (Exception ex)
+                {
+                    Console.WriteLine($"[!] Σφάλμα στο DoH GET: {ex.Message}");
+                    context.Response.StatusCode = 400;
+                }
+            });
 
             app.MapGet("/api/stats", (StatsStore stats) => new
             {
                 totalQueries = stats.TotalQueries,
                 blockedQueries = stats.BlockedQueries,
-                recentBlocks = stats.RecentBlocks.ToArray()
+                recentBlocks = stats.RecentBlocks.Reverse().ToArray()
             });
 
-            _ = app.RunAsync("http://localhost:5000");
+            app.MapGet("/api/stats/history", (StatsStore stats) =>
+            {
+                return stats.GetHistory(24);
+            });
+
+            app.MapGet("/api/stats/clients", (StatsStore stats) =>
+            {
+                return stats.GetTopClients(5);
+            });
+
+            app.MapGet("/api/logs", (StatsStore stats) =>
+            {
+                return stats.GetLiveLogs();
+            });
+
+            _ = app.RunAsync();
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            Console.WriteLine("==========================================");
+            Console.ForegroundColor = ConsoleColor.White;
+            Console.WriteLine("      SOCKET & SCRIPT - SECURITY HUB      ");
+            Console.ForegroundColor = ConsoleColor.DarkGray;
+            Console.WriteLine("==========================================\n");
+            Console.ResetColor();
             var statsStore = app.Services.GetRequiredService<StatsStore>();
             var listStore = app.Services.GetRequiredService<BlockListStore>();
             var adBlockEngine = app.Services.GetRequiredService<AutoAdBlockEngine>();
             var updater = app.Services.GetRequiredService<DNSListUpdaterService>();
+            var sinkholeResolver = app.Services.GetRequiredService<SinkholeResolver>();
+
             var cts = new CancellationTokenSource();
             _ = updater.StartAsync(cts.Token);
             await adBlockEngine.InitializeAsync();
-            var sinkholeResolver = new SinkholeResolver(adBlockEngine, listStore, statsStore);
+
             using DnsServer server = new DnsServer(sinkholeResolver);
+            var trayContext = new TrayApplicationContext(statsStore);
+            Thread trayThread = new Thread(() => {
+                Application.Run(trayContext);
+            });
+            trayThread.SetApartmentState(ApartmentState.STA);
+            server.Responded += (sender, e) =>
+            {
+                if (e.Request.Questions.Count == 0) return;
+
+                string domain = e.Request.Questions[0].Name.ToString();
+                string clientIp = e.Remote.Address.ToString();
+                if (clientIp == "::1") clientIp = "127.0.0.1";
+
+                bool isBlocked = e.Response.AnswerRecords.Any(r => r is DNS.Protocol.ResourceRecords.IPAddressResourceRecord ipRec && ipRec.IPAddress.Equals(System.Net.IPAddress.Any));
+
+                if (isBlocked)
+                {
+                    statsStore.AddBlockedClient(clientIp);
+                    trayContext.ShowNotification("Security Hub 🛡️", $"Μπλοκαρίστηκε:\n{domain}");
+                }
+
+                statsStore.AddLiveLog(domain, clientIp, isBlocked);
+            };
+            trayThread.Start();
             Console.ForegroundColor = ConsoleColor.Cyan;
-            Console.WriteLine("[+] Το Web API τρέχει στο http://localhost:5000/api/stats");
-            Console.WriteLine("[+] Ο DNS Server ακούει στην πόρτα 53 (0.0.0.0)...");
+            Console.WriteLine("[+] Το Web API (Dashboard) τρέχει στο http://localhost:5000");
+            Console.WriteLine("[+] Ο Secure DoH Server τρέχει στο https://localhost:5001/dns-query");
+            Console.WriteLine("[+] Ο παραδοσιακός DNS ακούει στην πόρτα 53 (0.0.0.0)...");
             Console.ResetColor();
             _ = Task.Run(() => server.Listen(53), cts.Token);
 
@@ -74,7 +185,7 @@ namespace DNS_Sinkhole
                             if (isBurner)
                             {
                                 Console.ForegroundColor = ConsoleColor.Red;
-                                Console.WriteLine("\n[!] Ενεργοποίηση Burner Mode. Τα πάντα τρέχουν στη RAM.");
+                                Console.WriteLine("\n[!] Ενεργοποίηση Burner Mode. Τα πάντα τρέχουν στη RAM. Μηδενικό αποτύπωμα στον δίσκο.");
                                 Console.ResetColor();
                             }
 
@@ -103,7 +214,7 @@ namespace DNS_Sinkhole
                         }
                     }
 
-                    Console.WriteLine("\n[+] Ο Browser καθαρίστηκε από τη μνήμη.");
+                    Console.WriteLine("\n[+] Ο Browser καθαρίστηκε από τη μνήμη. Επιστροφή στο κεντρικό μενού.");
                 }
             }
 
