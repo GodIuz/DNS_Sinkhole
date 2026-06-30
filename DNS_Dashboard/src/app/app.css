@@ -1,123 +1,100 @@
 * { box-sizing: border-box; }
-    .dashboard-container { 
-      font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; 
-      padding: 40px; 
-      background: #121212; 
-      color: white; 
-      min-height: 100vh; 
-      display: flex;
-      flex-direction: column;
-    }
-    header { margin-bottom: 40px; text-align: center; }
-    header h1 { font-size: 2.5rem; margin: 0; }
-    header h1 span { color: #00d2ff; }
-    .stats-grid { display: flex; gap: 30px; margin-bottom: 40px; }
-    .stat-card { 
-      background: #1e1e1e; 
-      padding: 40px 20px; 
-      border-radius: 12px; 
-      flex: 1; 
-      text-align: center; 
-      border: 1px solid #333;
-      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-    }
-    .stat-card h3 {
-      margin-top: 0;
-      color: #aaa;
-      font-size: 1.2rem;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-    }
-    .number { font-size: 4.5rem; margin: 10px 0 0 0; font-weight: bold; }
-    .blue { color: #00d2ff; text-shadow: 0 0 20px rgba(0, 210, 255, 0.4); }
-    .red { color: #ff4757; text-shadow: 0 0 20px rgba(255, 71, 87, 0.4); }
-    
-    .log-container { 
-      background: #1e1e1e; 
-      padding: 30px; 
-      border-radius: 12px; 
-      border: 1px solid #333;
-      flex-grow: 1; 
-      box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-      max-height: 50vh;
-      overflow-y: auto;
-    }
-    .log-container h3 {
-      margin-top: 0;
-      color: #aaa;
-      border-bottom: 1px solid #333;
-      padding-bottom: 15px;
-    }
-    ul { list-style: none; padding: 0; margin: 0; }
-    li { 
-      padding: 12px 0; 
-      border-bottom: 1px solid #2a2a2a; 
-      color: #ff4757; 
-      font-family: 'Courier New', Courier, monospace;
-      font-size: 1.1rem;
-    }
-    li:last-child { border-bottom: none; }
-    .empty { color: #555; font-style: italic; border: none; }
 
-    .main-grid { display: grid; grid-template-columns: 1fr 300px; gap: 30px; margin-bottom: 40px; }
-    .chart-container { background: #1e1e1e; padding: 20px; border-radius: 12px; border: 1px solid #333; display: flex; align-items: center; justify-content: center; }
-
-    ::-webkit-scrollbar { width: 8px; }
-    ::-webkit-scrollbar-track { background: #121212; }
-    ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
-    ::-webkit-scrollbar-thumb:hover { background: #555; }
-
-.history-chart-container {
-  background: #1e1e1e;
-  padding: 25px;
-  border-radius: 12px;
-  border: 1px solid #333;
-  margin-bottom: 40px;
-  box-shadow: 0 4px 15px rgba(0,0,0,0.3);
+.dashboard-container {
+font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+padding: 40px 60px;
+background: #111111;
+color: white;
+min-height: 100vh;
+display: flex;
+flex-direction: column;
 }
 
-.history-chart-container h3 {
-  margin-top: 0;
-  color: #aaa;
-  font-size: 1.1rem;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  margin-bottom: 20px;
-  border-bottom: 1px solid #333;
-  padding-bottom: 10px;
+header { margin-bottom: 40px; text-align: center; }
+header h1 { font-size: 2.8rem; margin: 0; font-weight: bold; }
+header h1 span { color: #00d2ff; }
+
+.main-grid {
+display: grid;
+grid-template-columns: 1fr 350px;
+gap: 30px;
+margin-bottom: 30px;
 }
 
-.clients-chart-container h3 {
-  margin-top: 0;
-  color: #aaa;
-  font-size: 1.1rem;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  margin-bottom: 20px;
-  border-bottom: 1px solid #333;
-  padding-bottom: 10px;
+.stats-panel {
+display: flex;
+flex-direction: column;
+gap: 30px;
 }
 
-/* Styling για το νέο Live Log Table */
-.live-log-container {
-  background: #1e1e1e; padding: 25px; border-radius: 12px;
-  border: 1px solid #333; box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-  display: flex; flex-direction: column; height: 350px;
+.stat-card {
+background: #1a1a1a;
+padding: 40px 20px;
+border-radius: 8px;
+flex: 1;
+text-align: center;
+border: 1px solid #2a2a2a;
+display: flex;
+flex-direction: column;
+justify-content: center;
 }
-.log-header {
-  display: flex; justify-content: space-between; align-items: center;
-  border-bottom: 1px solid #333; padding-bottom: 15px; margin-bottom: 15px;
+
+.stat-card h3 {
+margin: 0;
+color: #888;
+font-size: 1.1rem;
+text-transform: uppercase;
+letter-spacing: 2px;
 }
-.log-header h3 { margin: 0; color: #aaa; text-transform: uppercase; letter-spacing: 1px; }
-.log-controls input, .log-controls select {
-  background: #121212; color: white; border: 1px solid #444;
-  padding: 8px 12px; border-radius: 6px; margin-left: 10px; font-family: inherit;
+
+.number {
+  font-size: 5.5rem;
+  margin: 15px 0 0 0;
+  font-weight: bold;
 }
-.log-table-wrapper { overflow-y: auto; flex-grow: 1; }
-table { width: 100%; border-collapse: collapse; text-align: left; font-family: 'Courier New', monospace; font-size: 0.95rem; }
-th { position: sticky; top: 0; background: #1e1e1e; color: #888; padding: 10px; border-bottom: 2px solid #333; }
-td { padding: 10px; border-bottom: 1px solid #2a2a2a; }
-.log-row:hover { background: #252525; }
-.status-badge { padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 0.8rem; }
-.bg-red { background: rgba(255, 71, 87, 0.2); color: #ff4757; }
-.bg-green { background: rgba(46, 213, 115, 0.2); color: #2ed573; }
+
+.blue { color: #00d2ff; text-shadow: 0 0 25px rgba(0, 210, 255, 0.4); }
+.red { color: #ff4757; text-shadow: 0 0 25px rgba(255, 71, 87, 0.4); }
+
+.chart-container {
+background: #1a1a1a;
+padding: 30px;
+border-radius: 8px;
+border: 1px solid #2a2a2a;
+display: flex;
+align-items: center;
+justify-content: center;
+min-height: 350px;
+}
+
+.log-container {
+background: #1a1a1a;
+padding: 20px 30px;
+border-radius: 8px;
+border: 1px solid #2a2a2a;
+flex-grow: 1;
+max-height: 400px;
+overflow-y: auto;
+}
+
+.log-container h3 {
+display: none;
+}
+
+ul { list-style: none; padding: 0; margin: 0; }
+li {
+padding: 16px 0;
+border-bottom-color: 1px solid #2a2a2a;
+color: #ff4757;
+font-family: 'Courier New', Courier, monospace;
+font-size: 1.15rem;
+letter-spacing: 0.5px;
+}
+
+li:last-child { border-bottom: none; }
+.empty { color: #555; font-style: italic; border: none; }
+
+::-webkit-scrollbar { width: 10px; }
+::-webkit-scrollbar-track { background: #111; border-radius: 4px; }
+::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #555; }

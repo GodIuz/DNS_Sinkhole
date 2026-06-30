@@ -20,13 +20,6 @@
     </div>
   </div>
 
-  <div class="history-chart-container">
-    <h3>Ιστορικό Κίνησης (Τελευταίες 24 Ώρες)</h3>
-    <div style="position: relative; height: 300px; width: 100%;">
-      <canvas #historyChart></canvas>
-    </div>
-  </div>
-
   <div class="log-container">
     <h3>Τελευταίες Αναχαιτίσεις</h3>
     <ul>
@@ -35,46 +28,3 @@
     </ul>
   </div>
 </div>
-
-  <div class="live-log-container">
-      <div class="log-header">
-        <h3>Live DNS Stream</h3>
-        <div class="log-controls">
-          <input type="text" placeholder="Αναζήτηση Domain/IP..." (input)="updateSearch($event)" />
-          <select (change)="updateFilter($event)">
-            <option value="ALL">Όλα (All)</option>
-            <option value="BLOCKED">Μπλοκαρισμένα</option>
-            <option value="FORWARDED">Επιτρεπόμενα</option>
-          </select>
-        </div>
-      </div>
-      <div class="log-table-wrapper">
-        <table>
-          <thead>
-            <tr>
-              <th>Time</th>
-              <th>Client IP</th>
-              <th>Domain</th>
-              <th>Status</th>
-            </tr>
-          </thead>
-          <tbody>
-            @for (log of filteredLogs(); track $index) {
-              <tr class="log-row">
-                <td style="color: #888;">{{ log.timestamp }}</td>
-                <td style="color: #00d2ff;">{{ log.clientIp }}</td>
-                <td>{{ log.domain }}</td>
-                <td>
-                  <span class="status-badge" [class.bg-red]="log.isBlocked" [class.bg-green]="!log.isBlocked">
-                    {{ log.isBlocked ? 'BLOCKED' : 'FORWARDED' }}
-                  </span>
-                </td>
-              </tr>
-            }
-            @empty {
-              <tr><td colspan="4" class="empty" style="text-align: center; padding: 20px;">Δεν βρέθηκαν αποτελέσματα...</td></tr>
-            }
-          </tbody>
-        </table>
-      </div>
-    </div>

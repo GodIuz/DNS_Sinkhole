@@ -36,7 +36,6 @@ namespace DNS_Sinkhole
                 }
 
                 using var ms = new MemoryStream();
-
                 await context.Request.Body.CopyToAsync(ms);
                 byte[] requestBytes = ms.ToArray();
 
@@ -93,29 +92,15 @@ namespace DNS_Sinkhole
                 recentBlocks = stats.RecentBlocks.Reverse().ToArray()
             });
 
-            app.MapGet("/api/stats/history", (StatsStore stats) =>
-            {
-                return stats.GetHistory(24);
-            });
-
-            app.MapGet("/api/stats/clients", (StatsStore stats) =>
-            {
-                return stats.GetTopClients(5);
-            });
-
-            app.MapGet("/api/logs", (StatsStore stats) =>
-            {
-                return stats.GetLiveLogs();
-            });
-
             _ = app.RunAsync();
             Console.ForegroundColor = ConsoleColor.DarkGray;
-            Console.WriteLine("==========================================");
+            Console.WriteLine("");
             Console.ForegroundColor = ConsoleColor.White;
             Console.WriteLine("      SOCKET & SCRIPT - SECURITY HUB      ");
             Console.ForegroundColor = ConsoleColor.DarkGray;
-            Console.WriteLine("==========================================\n");
+            Console.WriteLine("\n");
             Console.ResetColor();
+
             var statsStore = app.Services.GetRequiredService<StatsStore>();
             var listStore = app.Services.GetRequiredService<BlockListStore>();
             var adBlockEngine = app.Services.GetRequiredService<AutoAdBlockEngine>();
@@ -127,11 +112,7 @@ namespace DNS_Sinkhole
             await adBlockEngine.InitializeAsync();
 
             using DnsServer server = new DnsServer(sinkholeResolver);
-            var trayContext = new TrayApplicationContext(statsStore);
-            Thread trayThread = new Thread(() => {
-                Application.Run(trayContext);
-            });
-            trayThread.SetApartmentState(ApartmentState.STA);
+
             server.Responded += (sender, e) =>
             {
                 if (e.Request.Questions.Count == 0) return;
@@ -145,12 +126,11 @@ namespace DNS_Sinkhole
                 if (isBlocked)
                 {
                     statsStore.AddBlockedClient(clientIp);
-                    trayContext.ShowNotification("Security Hub 🛡️", $"Μπλοκαρίστηκε:\n{domain}");
                 }
 
                 statsStore.AddLiveLog(domain, clientIp, isBlocked);
             };
-            trayThread.Start();
+
             Console.ForegroundColor = ConsoleColor.Cyan;
             Console.WriteLine("[+] Το Web API (Dashboard) τρέχει στο http://localhost:5000");
             Console.WriteLine("[+] Ο Secure DoH Server τρέχει στο https://localhost:5001/dns-query");
@@ -158,68 +138,7 @@ namespace DNS_Sinkhole
             Console.ResetColor();
             _ = Task.Run(() => server.Listen(53), cts.Token);
 
-            while (true)
-            {
-                Console.WriteLine("\n-------------------------------------------------------");
-                Console.WriteLine("[1] Κανονικός Ad-Free Browser (Persistent Profile)");
-                Console.WriteLine("[2] Burner Browser Mode (Απόλυτη Ανωνυμία - RAM Only)");
-                Console.WriteLine("[0] Έξοδος και κλείσιμο DNS Server");
-                Console.Write("\nΕπίλεξε λειτουργία (0-2): ");
-
-                string choice = Console.ReadLine()?.Trim() ?? "";
-
-                if (choice == "0")
-                {
-                    break;
-                }
-
-                if (choice == "1" || choice == "2")
-                {
-                    await using (var adFreeService = new UniversalAdFreeService())
-                    {
-                        try
-                        {
-                            Console.WriteLine("\n[*] Αρχικοποίηση της μηχανής Chromium...");
-                            bool isBurner = (choice == "2");
-
-                            if (isBurner)
-                            {
-                                Console.ForegroundColor = ConsoleColor.Red;
-                                Console.WriteLine("\n[!] Ενεργοποίηση Burner Mode. Τα πάντα τρέχουν στη RAM. Μηδενικό αποτύπωμα στον δίσκο.");
-                                Console.ResetColor();
-                            }
-
-                            await adFreeService.InitializeAsync(showUI: true, burnerMode: isBurner);
-
-                            Console.Write("\nΔώσε URL για να ανοίξει (Enter για YouTube): ");
-                            string inputUrl = Console.ReadLine()?.Trim() ?? "";
-
-                            if (string.IsNullOrWhiteSpace(inputUrl)) inputUrl = "https://www.youtube.com";
-                            else if (!inputUrl.StartsWith("http")) inputUrl = "https://" + inputUrl;
-
-                            await adFreeService.OpenSiteAsync(inputUrl);
-
-                            Console.ForegroundColor = ConsoleColor.Green;
-                            Console.WriteLine("\n[+] Η σελίδα άνοιξε!");
-                            Console.WriteLine("[*] Κλείσε το παράθυρο του Browser για να επιστρέψεις στο μενού...");
-                            Console.ResetColor();
-
-                            await adFreeService.WaitUntilClosedAsync();
-                        }
-                        catch (Exception ex)
-                        {
-                            Console.ForegroundColor = ConsoleColor.Red;
-                            Console.WriteLine($"\n[!] Προέκυψε σφάλμα: {ex.Message}");
-                            Console.ResetColor();
-                        }
-                    }
-
-                    Console.WriteLine("\n[+] Ο Browser καθαρίστηκε από τη μνήμη. Επιστροφή στο κεντρικό μενού.");
-                }
-            }
-
-            Console.WriteLine("\n[+] Τερματισμός του DNS Server και του συστήματος...");
-            cts.Cancel();
+            await Task.Delay(-1, cts.Token);
         }
     }
 }
